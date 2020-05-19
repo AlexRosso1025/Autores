@@ -13,6 +13,21 @@ app.listen(app.get('port'),()=>{
     console.log('Server is working');
 });
 
+function validarSiExiste(req,res,next){
+    const{nombre,apellido} = req.body;
+    const autorRepetido = autores.findIndex(elem =>{
+        if(elem.nombre==nombre && elem.apellido==apellido){
+            return elem;
+        }
+    });
+
+    if(autorRepetido>=0){
+        return res.status(409).json('El contacto ya existe');
+    }
+
+    return next();
+}
+
 app.get('/',(req,res)=>{
     //res.send('Estamos trabajando');
     res.json('Estamos trabajando');
@@ -26,7 +41,7 @@ app.get('/autores',(req,res)=>{
     }
 });
 
-app.post('/autores',(req,res)=>{
+app.post('/autores',validarSiExiste,(req,res)=>{
     const{nombre,apellido,fechaDeNacimiento,libros} = req.body;
     if(nombre && apellido && fechaDeNacimiento && libros){
         let id = autores.length+1;
@@ -55,13 +70,43 @@ app.get('/autores/:id',(req,res)=>{
 
 app.delete('/autores/:id',(req,res)=>{
     const {id} = req.params;
-    let posicionAutor = autores.filter((elem,index)=>{
+    autores.filter((elem,index)=>{
         if(elem.id == Number(id)){
-            return index;
+            autores.splice(index,1);
+            res.json(autores);
+        }else{
+            res.status(404).json(`No existe un autor con el id ${id}`);
         }
     });
 });
 
 app.put('/autores/:id',(req,res)=>{
     const {id} = req.params;
-})
+    const{nombre,apellido,fechaDeNacimiento,libros} = req.body;
+    let autor = autores.find((element)=>{
+        if(element.id == Number(id)){
+            return element;
+        }
+    });
+
+    autor.id=id;
+    autor.nombre=nombre;
+    autor.apellido=apellido;
+    autor.fechaDeNacimiento=fechaDeNacimiento;
+    autor.libros=libros;
+    const i = autores.indexOf(autor);
+    if(i>-1){
+        autores.splice(i,1,autor); 
+    }
+    res.json(autores);
+});
+
+app.get('/autores/:id/libros',(req,res)=>{
+    const {id} = req.params;
+    let autor = autores.find(elem =>{
+        if(elem.id == Number(id)){
+            return elem;
+        }
+    });
+    res.json(autor.libros);
+});
